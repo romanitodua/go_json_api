@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
 	"os"
@@ -29,7 +30,7 @@ func validateJWTToken(tokenString string) (string, time.Time, error) {
 		return []byte(secretKey), nil
 	})
 	if err != nil {
-		fmt.Println(err)
+		return "", time.Time{}, err
 	}
 	var tm time.Time
 	if claims, ok := token.Claims.(jwt.MapClaims); ok {
@@ -42,7 +43,7 @@ func validateJWTToken(tokenString string) (string, time.Time, error) {
 		}
 		return fmt.Sprint(claims["userID"]), tm, nil
 	} else {
-		return "", time.Time{}, nil
+		return "", time.Time{}, errors.New("could not convert timestamp into time.Time")
 	}
 }
 
