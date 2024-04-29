@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
@@ -13,7 +12,7 @@ func createNewJWTToken(userID string) (string, error) {
 	secretKey := os.Getenv("JWT_SECRET")
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"userID":    userID,
-		"createdAt": jwt.NewNumericDate(time.Now()),
+		"ExpiresAt": jwt.NewNumericDate(time.Now().Add(time.Second * 60 * 30)),
 	})
 	tokenString, err := token.SignedString([]byte(secretKey))
 	if err != nil {
@@ -21,7 +20,7 @@ func createNewJWTToken(userID string) (string, error) {
 	}
 	return tokenString, nil
 }
-func validateJWTToken(tokenString string) (string, time.Time, error) {
+func validateJWTToken(tokenString string) (string, error) {
 	secretKey := os.Getenv("JWT_SECRET")
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -30,29 +29,10 @@ func validateJWTToken(tokenString string) (string, time.Time, error) {
 		return []byte(secretKey), nil
 	})
 	if err != nil {
-		return "", time.Time{}, err
+		return "", err
 	}
-	var tm time.Time
 	if claims, ok := token.Claims.(jwt.MapClaims); ok {
-		switch iat := claims["createdAt"].(type) {
-		case float64:
-			tm = time.Unix(int64(iat), 0)
-		case json.Number:
-			v, _ := iat.Int64()
-			tm = time.Unix(v, 0)
-		}
-		return fmt.Sprint(claims["userID"]), tm, nil
-	} else {
-		return "", time.Time{}, errors.New("could not convert timestamp into time.Time")
+		return fmt.Sprint(claims["userID"]), nil
 	}
-}
-
-func shouldUpdateJWTToken(timestamp time.Time) (bool, error) {
-	tm := timestamp.Add(time.Second * 60 * 30)
-	now := time.Now()
-	if now.Before(tm) {
-		return false, nil
-	} else {
-		return true, nil
-	}
+	return "", errors.New("could not find the userID")
 }

@@ -33,12 +33,27 @@ func (db PostgresDB) getUserById(id string) (*User, error) {
 		Preload("Transactions").
 		First(&user).
 		Error
+
+	user.Password = ""
 	if err != nil {
-		fmt.Println(err)
+		return &user, err
 	}
 	return &user, nil
 }
 
-func (db PostgresDB) insertUser(u *User) {
-	db.instance.Create(u)
+func (db PostgresDB) loginUser(id string, password string) bool {
+	var count int64
+	err := db.instance.Model(&User{}).Where(&User{ID: id, Password: password}).Count(&count).Error
+	if err != nil {
+		fmt.Println(err)
+		return false
+	}
+	return count > 0
+}
+func (db PostgresDB) insertUser(u *User) error {
+	err := db.instance.Create(u).Error
+	if err != nil {
+		return err
+	}
+	return nil
 }

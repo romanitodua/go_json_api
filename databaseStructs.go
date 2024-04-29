@@ -23,6 +23,7 @@ type User struct {
 	Transactions     []Transaction `json:"transactions" gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
 	Accounts         []Account     `json:"accounts" gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
 	RegistrationDate time.Time     `json:"registration_date"`
+	Password         string        `json:"password"`
 }
 
 type Transaction struct {
