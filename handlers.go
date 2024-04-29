@@ -22,6 +22,13 @@ func makeHandleFunction(f apiFunction) http.HandlerFunc {
 	}
 }
 func (s *APIServer) handleGETUser(w http.ResponseWriter, r *http.Request) error {
+	if r.Method != "GET" {
+		err := writeJson(w, http.StatusBadRequest, ApiError{Error: "Wrong request method"})
+		if err != nil {
+			return err
+		}
+		return nil
+	}
 	id := mux.Vars(r)["id"]
 	user, err := s.database.getUserById(id)
 	if err != nil {
@@ -34,6 +41,13 @@ func (s *APIServer) handleGETUser(w http.ResponseWriter, r *http.Request) error 
 	return nil
 }
 func (s *APIServer) handlePOSTUser(w http.ResponseWriter, r *http.Request) error {
+	if r.Method != "POST" {
+		err := writeJson(w, http.StatusBadRequest, ApiError{Error: "Wrong request method"})
+		if err != nil {
+			return err
+		}
+		return nil
+	}
 	user := User{}
 	body := r.Body
 	defer func(body io.ReadCloser) {
@@ -45,8 +59,11 @@ func (s *APIServer) handlePOSTUser(w http.ResponseWriter, r *http.Request) error
 
 	err := json.NewDecoder(body).Decode(&user)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return err
+		wrtJsonError := writeJson(w, http.StatusBadRequest, ApiError{Error: err.Error()})
+		if wrtJsonError != nil {
+			return wrtJsonError
+		}
+		return nil
 	}
 
 	user.RegistrationDate = time.Now()
@@ -63,6 +80,13 @@ func (s *APIServer) handlePOSTUser(w http.ResponseWriter, r *http.Request) error
 }
 
 func (s *APIServer) handleSignIn(w http.ResponseWriter, r *http.Request) error {
+	if r.Method != "POST" {
+		err := writeJson(w, http.StatusBadRequest, ApiError{Error: "Wrong request method"})
+		if err != nil {
+			return err
+		}
+		return nil
+	}
 	body := r.Body
 	defer func(body io.ReadCloser) {
 		err := body.Close()
@@ -75,15 +99,17 @@ func (s *APIServer) handleSignIn(w http.ResponseWriter, r *http.Request) error {
 
 	err := json.NewDecoder(body).Decode(&values)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return err
+		wrtJsonError := writeJson(w, http.StatusBadRequest, ApiError{Error: err.Error()})
+		if wrtJsonError != nil {
+			return wrtJsonError
+		}
+		return nil
 	}
 	id, okid := values["id"]
 	password, okpassword := values["password"]
 
 	if okid && okpassword {
 		login := s.database.loginUser(id, password)
-		fmt.Println(login)
 		if login {
 			jwtToken, jwtError := createNewJWTToken(id)
 			if jwtError != nil {
@@ -93,13 +119,14 @@ func (s *APIServer) handleSignIn(w http.ResponseWriter, r *http.Request) error {
 			if wrtJsonError != nil {
 				return wrtJsonError
 			}
+			return nil
 		}
 	} else {
 		jsonErr := writeJson(w, http.StatusBadRequest, ApiError{Error: "Authorization Denied"})
 		if jsonErr != nil {
 			return jsonErr
-
 		}
+		return nil
 	}
 	return nil
 

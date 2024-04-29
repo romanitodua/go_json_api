@@ -26,7 +26,6 @@ type ApiError struct {
 
 func newAPIServer(address string) *APIServer {
 	db, err := newPostgresDB()
-
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -55,7 +54,6 @@ func withJWTAuthProfile(handlerFunc http.HandlerFunc) http.HandlerFunc {
 		fmt.Println(tokenString)
 		userID, err := validateJWTToken(tokenString)
 		if err != nil {
-			fmt.Println(err)
 			http.Error(w, "Permission Denied", http.StatusBadRequest)
 			return
 		}
