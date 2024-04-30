@@ -171,3 +171,34 @@ func (s *APIServer) handlePOSTAccount(w http.ResponseWriter, r *http.Request) er
 	}
 	return nil
 }
+
+func (s *APIServer) handlePOSTTransaction(w http.ResponseWriter, r *http.Request) error {
+	id := mux.Vars(r)["id"]
+	var transaction repository.Transaction
+	transaction.UserID = id
+	transaction.Date = time.Now()
+	body := r.Body
+	defer func(body io.ReadCloser) {
+		err := body.Close()
+		if err != nil {
+			return
+		}
+	}(body)
+
+	err := json.NewDecoder(body).Decode(&transaction)
+	if err != nil {
+		return err
+	}
+	transactionErr := s.database.InsertTransaction(&transaction)
+	if transactionErr != nil {
+		return transactionErr
+	}
+	wrtJsonError := writeJson(w, http.StatusCreated, map[string]string{
+		"transaction": "success",
+	})
+	if wrtJsonError != nil {
+		return wrtJsonError
+
+	}
+	return nil
+}

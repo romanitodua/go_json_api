@@ -39,6 +39,7 @@ func (s *APIServer) StartServer() {
 	router.HandleFunc("/profile/{id}", withJWTAuth(makeHandleFunction(s.handleGETUser)))
 	router.HandleFunc("/signin", makeHandleFunction(s.handlePOSTSignIn))
 	router.HandleFunc("/createAccount/{id}", withJWTAuth(makeHandleFunction(s.handlePOSTAccount)))
+	router.HandleFunc("/transaction/{id}", withJWTAuth(makeHandleFunction(s.handlePOSTTransaction)))
 	fmt.Println("Server Running...")
 
 	log.Fatal(http.ListenAndServe(s.listenAddress, router))

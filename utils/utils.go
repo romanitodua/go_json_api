@@ -4,6 +4,7 @@ import (
 	"math/rand"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func randomDigit() string {
@@ -28,4 +29,18 @@ func Contains(slice []string, item string) bool {
 		}
 	}
 	return false
+}
+
+func GenerateTransactionID() string {
+	tm := time.Now()
+	result := strings.Builder{}
+	result.WriteString("T")
+	result.WriteString(strconv.Itoa(tm.Day()))
+	result.WriteString(strconv.Itoa(int(tm.Month())))
+	result.WriteString(strconv.Itoa(tm.Year()))
+
+	for i := 0; i < 6; i++ {
+		result.WriteString(randomDigit())
+	}
+	return result.String()
 }
