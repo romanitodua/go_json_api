@@ -35,9 +35,10 @@ func newAPIServer(address string) *APIServer {
 func (s *APIServer) startServer() {
 	router := mux.NewRouter()
 	// needs to be post method !
-	router.HandleFunc("/signUp", makeHandleFunction(s.handlePOSTUser))
-	router.HandleFunc("/profile/{id}", withJWTAuthProfile(makeHandleFunction(s.handleGETUser)))
-	router.HandleFunc("/signin", makeHandleFunction(s.handleSignIn))
+	router.HandleFunc("/signup", makeHandleFunction(s.handlePOSTSignUp))
+	router.HandleFunc("/profile/{id}", withJWTAuth(makeHandleFunction(s.handleGETUser)))
+	router.HandleFunc("/signin", makeHandleFunction(s.handlePOSTSignIn))
+	router.HandleFunc("/createAccount", withJWTAuth(makeHandleFunction(s.handlePOSTAccount)))
 	fmt.Println("Server Running...")
 
 	log.Fatal(http.ListenAndServe(s.listenAddress, router))
@@ -47,11 +48,10 @@ func writeJson(w http.ResponseWriter, status int, v any) error {
 	w.WriteHeader(status)
 	return json.NewEncoder(w).Encode(v)
 }
-func withJWTAuthProfile(handlerFunc http.HandlerFunc) http.HandlerFunc {
+func withJWTAuth(handlerFunc http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := mux.Vars(r)["id"]
 		tokenString := r.Header.Get("api_jwt_token")
-		fmt.Println(tokenString)
 		userID, err := validateJWTToken(tokenString)
 		if err != nil {
 			http.Error(w, "Permission Denied", http.StatusBadRequest)
