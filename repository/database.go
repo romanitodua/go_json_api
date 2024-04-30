@@ -1,7 +1,8 @@
-package main
+package repository
 
 import (
 	"fmt"
+	"go-api/utils"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"log"
@@ -11,7 +12,7 @@ type PostgresDB struct {
 	instance *gorm.DB
 }
 
-func newPostgresDB() (*PostgresDB, error) {
+func NewPostgresDB() (*PostgresDB, error) {
 	dsn := "host=localhost user=postgres password=romaroma dbname=banking port=5432 sslmode=disable TimeZone=Etc/GMT+4"
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{QueryFields: true})
 	if err != nil {
@@ -23,7 +24,7 @@ func newPostgresDB() (*PostgresDB, error) {
 	}, nil
 }
 
-func (db PostgresDB) getUserById(id string) (*User, error) {
+func (db PostgresDB) GetUserById(id string) (*User, error) {
 	var user User
 	err := db.instance.Model(&User{}).
 		Joins("LEFT JOIN accounts ON users.id = accounts.user_id").
@@ -41,7 +42,7 @@ func (db PostgresDB) getUserById(id string) (*User, error) {
 	return &user, nil
 }
 
-func (db PostgresDB) loginUser(id string, password string) bool {
+func (db PostgresDB) LoginUser(id string, password string) bool {
 	var count int64
 	err := db.instance.Model(&User{}).Where(&User{ID: id, Password: password}).Count(&count).Error
 	if err != nil {
@@ -50,7 +51,7 @@ func (db PostgresDB) loginUser(id string, password string) bool {
 	}
 	return count > 0
 }
-func (db PostgresDB) insertUser(u *User) error {
+func (db PostgresDB) InsertUser(u *User) error {
 	err := db.instance.Create(u).Error
 	if err != nil {
 		return err
@@ -58,7 +59,7 @@ func (db PostgresDB) insertUser(u *User) error {
 	return nil
 }
 
-func (db PostgresDB) insertAccount(a *Account) (error, string) {
+func (db PostgresDB) InsertAccount(a *Account) (error, string) {
 	var accountNumbers []string
 	err := db.instance.Model(&Account{}).Pluck("account_number", &accountNumbers).Error
 	if err != nil {
@@ -68,8 +69,8 @@ func (db PostgresDB) insertAccount(a *Account) (error, string) {
 	isUnique := false
 
 	for !isUnique {
-		accountNumber = generateAccountNumber()
-		isUnique = !contains(accountNumbers, accountNumber)
+		accountNumber = utils.GenerateAccountNumber()
+		isUnique = !utils.Contains(accountNumbers, accountNumber)
 	}
 	a.AccountNumber = accountNumber
 	err = db.instance.Create(a).Error

@@ -1,6 +1,8 @@
 package main
 
+import "go-api/server"
+
 func main() {
-	apiServer := newAPIServer(":8080")
-	apiServer.startServer()
+	apiServer := server.NewAPIServer(":8080")
+	apiServer.StartServer()
 }

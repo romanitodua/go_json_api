@@ -1,9 +1,10 @@
-package main
+package server
 
 import (
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
+	"go-api/repository"
 	"io"
 	"net/http"
 	"time"
@@ -14,7 +15,6 @@ func makeHandleFunction(f apiFunction) http.HandlerFunc {
 		err := f(w, r)
 		if err != nil {
 			apiError := writeJson(w, http.StatusBadRequest, ApiError{Error: fmt.Sprint(err)})
-			_ = fmt.Sprint(err)
 			if apiError != nil {
 				return
 			}
@@ -35,7 +35,7 @@ func verifyRequestMethod(method string, w http.ResponseWriter, r *http.Request) 
 func (s *APIServer) handleGETUser(w http.ResponseWriter, r *http.Request) error {
 	if verifyRequestMethod("GET", w, r) {
 		id := mux.Vars(r)["id"]
-		user, err := s.database.getUserById(id)
+		user, err := s.database.GetUserById(id)
 		if err != nil {
 			return err
 		}
@@ -49,7 +49,7 @@ func (s *APIServer) handleGETUser(w http.ResponseWriter, r *http.Request) error 
 }
 func (s *APIServer) handlePOSTSignUp(w http.ResponseWriter, r *http.Request) error {
 	if verifyRequestMethod("POST", w, r) {
-		user := User{}
+		user := repository.User{}
 		body := r.Body
 		defer func(body io.ReadCloser) {
 			err := body.Close()
@@ -76,7 +76,7 @@ func (s *APIServer) handlePOSTSignUp(w http.ResponseWriter, r *http.Request) err
 
 		user.RegistrationDate = time.Now()
 
-		err = s.database.insertUser(&user)
+		err = s.database.InsertUser(&user)
 		if err != nil {
 			return err
 		}
@@ -113,7 +113,7 @@ func (s *APIServer) handlePOSTSignIn(w http.ResponseWriter, r *http.Request) err
 		password, okpassword := values["password"]
 
 		if okid && okpassword {
-			login := s.database.loginUser(id, password)
+			login := s.database.LoginUser(id, password)
 			if login {
 				jwtToken, jwtError := createNewJWTToken(id)
 				if jwtError != nil {
@@ -148,7 +148,7 @@ func (s *APIServer) handlePOSTAccount(w http.ResponseWriter, r *http.Request) er
 			}
 		}(body)
 
-		account := Account{}
+		account := repository.Account{}
 		err := json.NewDecoder(body).Decode(&account)
 		if err != nil {
 			return err
@@ -156,9 +156,9 @@ func (s *APIServer) handlePOSTAccount(w http.ResponseWriter, r *http.Request) er
 		tokenString := r.Header.Get("api_jwt_token")
 		userID, err := validateJWTToken(tokenString)
 		account.OpeningDate = time.Now()
-		account.Status = ACTIVE
+		account.Status = repository.ACTIVE
 		account.UserID = userID
-		err, accountNumber := s.database.insertAccount(&account)
+		err, accountNumber := s.database.InsertAccount(&account)
 		if err != nil {
 			return err
 		}

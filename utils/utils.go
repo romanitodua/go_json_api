@@ -1,4 +1,4 @@
-package main
+package utils
 
 import (
 	"math/rand"
@@ -10,7 +10,7 @@ func randomDigit() string {
 	return strconv.Itoa(rand.Intn(10))
 }
 
-func generateAccountNumber() string {
+func GenerateAccountNumber() string {
 	result := strings.Builder{}
 	result.WriteString("GE")
 	result.WriteString(randomDigit())
@@ -21,7 +21,7 @@ func generateAccountNumber() string {
 	}
 	return result.String()
 }
-func contains(slice []string, item string) bool {
+func Contains(slice []string, item string) bool {
 	for _, s := range slice {
 		if s == item {
 			return true

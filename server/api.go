@@ -1,10 +1,11 @@
-package main
+package server
 
 import (
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
+	"go-api/repository"
 	"log"
 	"net/http"
 )
@@ -13,7 +14,7 @@ type apiFunction func(w http.ResponseWriter, r *http.Request) error
 
 type APIServer struct {
 	listenAddress string
-	database      PostgresDB
+	database      repository.PostgresDB
 }
 
 type JWTResponse struct {
@@ -24,17 +25,16 @@ type ApiError struct {
 	Error string `json:"error"`
 }
 
-func newAPIServer(address string) *APIServer {
-	db, err := newPostgresDB()
+func NewAPIServer(address string) *APIServer {
+	db, err := repository.NewPostgresDB()
 	if err != nil {
 		log.Fatal(err)
 	}
 	return &APIServer{listenAddress: address, database: *db}
 }
 
-func (s *APIServer) startServer() {
+func (s *APIServer) StartServer() {
 	router := mux.NewRouter()
-	// needs to be post method !
 	router.HandleFunc("/signup", makeHandleFunction(s.handlePOSTSignUp))
 	router.HandleFunc("/profile/{id}", withJWTAuth(makeHandleFunction(s.handleGETUser)))
 	router.HandleFunc("/signin", makeHandleFunction(s.handlePOSTSignIn))
