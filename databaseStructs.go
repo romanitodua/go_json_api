@@ -24,6 +24,7 @@ type User struct {
 	Accounts         []Account     `json:"accounts" gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
 	RegistrationDate time.Time     `json:"registration_date"`
 	Password         string        `json:"password"`
+	// TODO add number
 }
 
 type Transaction struct {

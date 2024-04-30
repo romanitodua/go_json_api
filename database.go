@@ -57,3 +57,24 @@ func (db PostgresDB) insertUser(u *User) error {
 	}
 	return nil
 }
+
+func (db PostgresDB) insertAccount(a *Account) (error, string) {
+	var accountNumbers []string
+	err := db.instance.Model(&Account{}).Pluck("account_number", &accountNumbers).Error
+	if err != nil {
+		return err, ""
+	}
+	var accountNumber string
+	isUnique := false
+
+	for !isUnique {
+		accountNumber = generateAccountNumber()
+		isUnique = !contains(accountNumbers, accountNumber)
+	}
+	a.AccountNumber = accountNumber
+	err = db.instance.Create(a).Error
+	if err != nil {
+		return err, ""
+	}
+	return nil, accountNumber
+}

@@ -139,5 +139,35 @@ func (s *APIServer) handlePOSTSignIn(w http.ResponseWriter, r *http.Request) err
 }
 
 func (s *APIServer) handlePOSTAccount(w http.ResponseWriter, r *http.Request) error {
+	if verifyRequestMethod("POST", w, r) {
+		body := r.Body
+		defer func(body io.ReadCloser) {
+			err := body.Close()
+			if err != nil {
+				return
+			}
+		}(body)
+
+		account := Account{}
+		err := json.NewDecoder(body).Decode(&account)
+		if err != nil {
+			return err
+		}
+		tokenString := r.Header.Get("api_jwt_token")
+		userID, err := validateJWTToken(tokenString)
+		account.OpeningDate = time.Now()
+		account.Status = ACTIVE
+		account.UserID = userID
+		err, accountNumber := s.database.insertAccount(&account)
+		if err != nil {
+			return err
+		}
+		err = writeJson(w, http.StatusCreated, map[string]string{
+			"account_number": accountNumber,
+		})
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
