@@ -35,11 +35,21 @@ func verifyRequestMethod(method string, w http.ResponseWriter, r *http.Request) 
 func (s *APIServer) handleGETUser(w http.ResponseWriter, r *http.Request) error {
 	if verifyRequestMethod("GET", w, r) {
 		id := mux.Vars(r)["id"]
+		user, ok := s.cache.GetUser(id)
+		if ok {
+			fmt.Println("user is from cache")
+			apiError := writeJson(w, http.StatusOK, user)
+			if apiError != nil {
+				return apiError
+			}
+			return nil
+		}
 		user, err := s.database.GetUserById(id)
 		if err != nil {
 			return err
 		}
 		apiError := writeJson(w, http.StatusOK, user)
+		s.cache.InsertUser(user)
 		if apiError != nil {
 			return apiError
 		}

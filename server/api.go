@@ -6,8 +6,10 @@ import (
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
 	"go-api/repository"
+	"go-api/utilityStructs"
 	"log"
 	"net/http"
+	"sync"
 )
 
 type apiFunction func(w http.ResponseWriter, r *http.Request) error
@@ -15,6 +17,7 @@ type apiFunction func(w http.ResponseWriter, r *http.Request) error
 type APIServer struct {
 	listenAddress string
 	database      repository.PostgresDB
+	cache         *utilityStructs.OrderedMap
 }
 
 type JWTResponse struct {
@@ -26,11 +29,16 @@ type ApiError struct {
 }
 
 func NewAPIServer(address string) *APIServer {
+	orderedMap := utilityStructs.OrderedMap{
+		Data: make(map[string]*repository.User),
+		Keys: make([]string, 0),
+		Mu:   &sync.RWMutex{},
+	}
 	db, err := repository.NewPostgresDB()
 	if err != nil {
 		log.Fatal(err)
 	}
-	return &APIServer{listenAddress: address, database: *db}
+	return &APIServer{listenAddress: address, database: *db, cache: &orderedMap}
 }
 
 func (s *APIServer) StartServer() {

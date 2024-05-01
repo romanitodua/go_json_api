@@ -2,7 +2,7 @@ package repository
 
 import (
 	"fmt"
-	"go-api/utils"
+	"go-api/utilityFunctions"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -69,8 +69,8 @@ func (db PostgresDB) InsertAccount(a *Account) (error, string) {
 	isUnique := false
 
 	for !isUnique {
-		accountNumber = utils.GenerateAccountNumber()
-		isUnique = !utils.Contains(accountNumbers, accountNumber)
+		accountNumber = utilityFunctions.GenerateAccountNumber()
+		isUnique = !utilityFunctions.Contains(accountNumbers, accountNumber)
 	}
 	a.AccountNumber = accountNumber
 	err = db.instance.Create(a).Error
@@ -89,8 +89,8 @@ func (db PostgresDB) InsertTransaction(t *Transaction) error {
 	}
 	isUnique := false
 	for !isUnique {
-		transactionID = utils.GenerateTransactionID()
-		isUnique = !utils.Contains(transactionIDs, transactionID)
+		transactionID = utilityFunctions.GenerateTransactionID()
+		isUnique = !utilityFunctions.Contains(transactionIDs, transactionID)
 	}
 	t.TransactionID = transactionID
 	// check if the destination account exists
