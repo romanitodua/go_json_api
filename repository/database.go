@@ -7,6 +7,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"log"
+	"time"
 )
 
 type PostgresDB struct {
@@ -30,9 +31,11 @@ func (db PostgresDB) GetUserById(id string) (*User, error) {
 	err := db.instance.Model(&User{}).
 		Joins("LEFT JOIN accounts ON users.id = accounts.user_id").
 		Joins("LEFT JOIN transactions ON users.id = transactions.user_id").
+		Joins("LEFT JOIN responsibilities ON users.id = responsibilities.user_id").
 		Where("users.id = ?", id).
 		Preload("Accounts").
 		Preload("Transactions").
+		Preload("Responsibilities").
 		First(&user).
 		Error
 
@@ -107,25 +110,31 @@ func (db PostgresDB) InsertTransaction(t *Transaction) error {
 		if oDbErr != nil {
 			return oDbErr
 		}
-		destinationAccount.Balance += t.Amount
-		originalAccount.Balance -= t.Amount
-		transactionERR := db.instance.Transaction(func(tx *gorm.DB) error {
-			updateDestinationAccount := db.instance.Clauses(clause.Locking{Strength: "UPDATE"}).Save(&destinationAccount).Error
-			if updateDestinationAccount != nil {
-				return updateDestinationAccount
+		if originalAccount.Status == DISABLED || destinationAccount.Status == DISABLED {
+			return fmt.Errorf("SEND OR RECIPIENT'S IS DESIBLED")
+		}
+		senderBalance := originalAccount.Balance
+		switch originalAccount.AccountType {
+		case DEBIT:
+			if senderBalance >= t.Amount {
+				destinationAccount.Balance += t.Amount
+				originalAccount.Balance -= t.Amount
+				err = db.commitTransaction(t, originalAccount, destinationAccount)
+				if err != nil {
+					return err
+				}
+			} else {
+				return fmt.Errorf("inssuficient balance")
 			}
-			updateOriginalAccount := db.instance.Clauses(clause.Locking{Strength: "UPDATE"}).Save(&originalAccount).Error
-			if updateOriginalAccount != nil {
-				return updateOriginalAccount
+		case CREDIT:
+			destinationAccount.Balance += t.Amount
+			originalAccount.Balance -= t.Amount
+			err = db.commitTransaction(t, originalAccount, destinationAccount)
+			if err != nil {
+				return err
 			}
-			addTransaction := db.instance.Create(t).Error
-			if addTransaction != nil {
-				return addTransaction
-			}
-			return nil
-		})
-		if transactionERR != nil {
-			return transactionERR
+		case SAVING:
+			return fmt.Errorf("account is not able to make transactions")
 		}
 	} else {
 		return fmt.Errorf("destination Account does not exist")
@@ -150,4 +159,67 @@ func (db PostgresDB) getAccountByAccountID(accountNumber string) (*Account, erro
 		return nil, err
 	}
 	return &account, nil
+}
+
+func (db PostgresDB) AutomaticPayment() {
+	go func() {
+		var responsibilities []Responsibility
+		db.instance.Find(&responsibilities)
+		for _, responsibility := range responsibilities {
+			go db.processResponsibility(responsibility)
+		}
+	}()
+}
+
+func (db PostgresDB) processResponsibility(r Responsibility) {
+	ticker := time.NewTicker(time.Minute)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			if time.Now().After(r.DueDate) {
+				t := Transaction{
+					OriginAccountNumber:      r.OriginAccountNumber,
+					DestinationAccountNumber: r.DestinationAccountNumber,
+					Type:                     SENT,
+					Date:                     time.Now(),
+					Amount:                   r.Amount,
+					Description:              r.Description,
+					TransactionID:            "",
+					UserID:                   r.UserID,
+				}
+
+				err := db.InsertTransaction(&t)
+				if err != nil {
+					fmt.Println(err)
+					return
+				}
+
+				return
+			}
+		}
+	}
+}
+
+func (db PostgresDB) commitTransaction(t *Transaction, originalAccount *Account, destinationAccount *Account) error {
+	transactionERR := db.instance.Transaction(func(tx *gorm.DB) error {
+		updateDestinationAccount := db.instance.Clauses(clause.Locking{Strength: "UPDATE"}).Save(&destinationAccount).Error
+		if updateDestinationAccount != nil {
+			return updateDestinationAccount
+		}
+		updateOriginalAccount := db.instance.Clauses(clause.Locking{Strength: "UPDATE"}).Save(&originalAccount).Error
+		if updateOriginalAccount != nil {
+			return updateOriginalAccount
+		}
+		addTransaction := db.instance.Create(t).Error
+		if addTransaction != nil {
+			return addTransaction
+		}
+		return nil
+	})
+	if transactionERR != nil {
+		return transactionERR
+	}
+	return nil
 }

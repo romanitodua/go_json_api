@@ -48,8 +48,9 @@ func (s *APIServer) StartServer() {
 	router.HandleFunc("/signin", makeHandleFunction(s.handlePOSTSignIn))
 	router.HandleFunc("/createAccount/{id}", withJWTAuth(makeHandleFunction(s.handlePOSTAccount)))
 	router.HandleFunc("/transaction/{id}", withJWTAuth(makeHandleFunction(s.handlePOSTTransaction)))
+	s.database.AutomaticPayment()
+	fmt.Println("Automatic Payments initialized")
 	fmt.Println("Server Running...")
-
 	log.Fatal(http.ListenAndServe(s.listenAddress, router))
 }
 func writeJson(w http.ResponseWriter, status int, v any) error {

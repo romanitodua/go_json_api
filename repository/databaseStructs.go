@@ -17,14 +17,14 @@ const (
 )
 
 type User struct {
-	Name             string        `json:"name"`
-	Surname          string        `json:"surname"`
-	ID               string        `json:"id" gorm:"primaryKey"`
-	Transactions     []Transaction `json:"transactions" gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
-	Accounts         []Account     `json:"accounts" gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
-	RegistrationDate time.Time     `json:"registration_date"`
-	Password         string        `json:"password"`
-	// TODO add number
+	Name             string           `json:"name"`
+	Surname          string           `json:"surname"`
+	ID               string           `json:"id" gorm:"primaryKey"`
+	Transactions     []Transaction    `json:"transactions" gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
+	Accounts         []Account        `json:"accounts" gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
+	RegistrationDate time.Time        `json:"registration_date"`
+	Password         string           `json:"password"`
+	Responsibilities []Responsibility `json:"responsibilities" gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
 }
 
 type Transaction struct {
@@ -45,4 +45,15 @@ type Account struct {
 	OpeningDate   time.Time `json:"opening_date"`
 	Status        int       `json:"status"`
 	UserID        string    `json:"user_id"`
+}
+
+type Responsibility struct {
+	OriginAccountNumber      string    `json:"origin_account_number"`
+	DestinationAccountNumber string    `json:"destination_account_number"`
+	DueDate                  time.Time `json:"due_date"`
+	Amount                   int       `json:"amount"`
+	Description              string    `json:"description"`
+	UserID                   string    `json:"user_id"`
+	ResponsibilityID         string    `json:"responsibility_id"`
+	Name                     string    `json:"name"`
 }
